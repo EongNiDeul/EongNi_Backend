@@ -21,8 +21,9 @@ app.get('/', (req, res) => {
 
 //  실제 라우터 경로 등록
 app.use('/api/user', userRoutes);
-app.use('/api/post', postRouters);
-app.use("/api/comment", commentRoutes);
+// app.use('/api/post', postRouters);
+app.use('/api/post', require('./routes/post_api'));
+app.use("/api/comment", require("./routes/comment_api"));
 
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT} 에서 서버 실행 중 엉니야 엉니`);
