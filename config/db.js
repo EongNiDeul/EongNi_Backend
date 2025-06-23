@@ -11,12 +11,12 @@ const pool = mysql.createPool({
 });
 
 pool.getConnection((err, connection) => {
-    if (err) {
-        console.error('MySQL 연결 실패:', err);
-    } else {
-        console.log('MySQL 연결 성공!');
-        connection.release(); // 연결 반환
-    }
+  if (err) {
+    console.error('MySQL 연결 실패:', err);
+  } else {
+    console.log('MySQL 연결 성공!');
+    connection.release(); // 연결 반환
+  }
 });
 
 module.exports = pool.promise();
