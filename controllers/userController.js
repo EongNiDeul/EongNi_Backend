@@ -3,11 +3,11 @@ const bcrypt = require("bcrypt");
 
 // 회원가입
 exports.register = async (req, res) => {
-  const { nickname, password, confirmPassword } = req.body;
-  //넥네임, 비밀번호, 비번 확인 받아오고
+  const { nickname, password, confirmPassword, email } = req.body;
+  //넥네임, 비밀번호, 비번 확인, 이메일 받아오고
 
   //다 입력해야 하고
-  if (!nickname || !password || !confirmPassword) {
+  if (!nickname || !password || !confirmPassword || !email) {
     return res.status(400).json({ message: "모든 필드를 입력해주세요." });
   }
 
@@ -26,8 +26,8 @@ exports.register = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10); // 비밀번호 암호화, 암호화에 걸리는 복잡도 일반적이게 10으로
     await db.query(
-      "INSERT INTO user (nickname, password, level, created_at) VALUES (?, ?, ?, NOW())",
-      [nickname, hashedPassword, 1]     // 해시패스워드로 저장
+      "INSERT INTO user (nickname, password, email, level, created_at) VALUES (?, ?, ?, ?, NOW())",
+      [nickname, hashedPassword, email, 1]     // 해시패스워드, 이메일 저장
     );
     res.status(201).json({ message: "회원가입이 완료되었습니다." });
   } catch (err) {
@@ -65,6 +65,7 @@ exports.login = async (req, res) => {
         id: user.id,
         nickname: user.nickname,
         level: user.level,
+        email: user.email, // 이메일도 같이 보냄
       },
     });
   } catch (err) {
@@ -84,7 +85,7 @@ exports.getUserById = async (req, res) => {
     const [rows] = await db.query(
       `
       SELECT 
-        u.id, u.nickname, u.level, u.comment_count, u.created_at,
+        u.id, u.nickname, u.level, u.comment_count, u.created_at, u.email,
         li.title AS level_title
       FROM 
         user u
@@ -94,7 +95,6 @@ exports.getUserById = async (req, res) => {
         u.level = li.level
       WHERE 
         u.id = ?
-       
       `,
       [userId]
     );
