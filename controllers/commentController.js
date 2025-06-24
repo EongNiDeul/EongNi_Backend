@@ -83,7 +83,6 @@ exports.deleteComment = async (req, res) => {
 
   try {
     // 삭제 전 해당 댓글의 작성자 아이디 조회
-    // 누가 썼는지 알아야 댓글 수도 줄이고 레벨도 다시 계산할 수 있으니까
     const [rows] = await db.query(
       "SELECT user_id FROM comment WHERE id = ?",
       [commentId]
@@ -93,33 +92,71 @@ exports.deleteComment = async (req, res) => {
     }
     const userId = rows[0].user_id;
 
-    // 댓글을 디비에서 삭제
+    // 댓글 삭제
     await db.query("DELETE FROM comment WHERE id = ?", [commentId]);
 
-    // 댓글 수를 1 감소시키되, 0보다 작아지지 않도록 하기
-    //두 값 중에서 더 큰 거로 하기
+    // 댓글 수 감소 (최소 0)
     await db.query(
       "UPDATE user SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = ?",
       [userId]
     );
 
-    // 최신 댓글 수를 다시 조회
+    // 최신 comment_count 다시 조회
     const [userRows] = await db.query(
       "SELECT comment_count FROM user WHERE id = ?",
       [userId]
     );
     const commentCount = userRows[0].comment_count;
 
-    // 댓글 수에 따라 레벨을 다시 계산하고 업데이트
+    // 레벨 재계산
     const newLevel = Math.floor(commentCount / 5) + 1;
-    await db.query("UPDATE user SET level = ? WHERE id = ?", [
-      newLevel,
-      userId,
-    ]);
+    await db.query("UPDATE user SET level = ? WHERE id = ?", [newLevel, userId]);
 
     res.status(200).json({ message: "댓글이 삭제되었습니다." });
   } catch (err) {
     console.error("댓글 삭제 에러:", err);
+    res.status(500).json({ message: "서버 에러" });
+  }
+};
+
+// 댓글 고정
+exports.pinComment = async (req, res) => {
+  const { postId, commentId } = req.params;
+
+  try {
+    // 먼저 해당 게시물의 모든 댓글의 고정을 해제
+    await db.query("UPDATE comment SET is_pinned = 0 WHERE post_id = ?", [postId]);
+
+    // 해당 댓글만 고정
+    await db.query("UPDATE comment SET is_pinned = 1 WHERE id = ? AND post_id = ?", [
+      commentId,
+      postId,
+    ]);
+
+    res.status(200).json({ message: "댓글이 고정되었습니다." });
+  } catch (err) {
+    console.error("댓글 고정 에러:", err);
+    res.status(500).json({ message: "서버 에러" });
+  }
+};
+
+// 게시물 댓글 조회
+exports.getCommentsByPost = async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    const [comments] = await db.query(
+      `SELECT comment.*, user.nickname
+       FROM comment
+       JOIN user ON comment.user_id = user.id
+       WHERE comment.post_id = ?
+       ORDER BY is_pinned DESC, created_at ASC`,
+      [postId]
+    );
+
+    res.status(200).json(comments);
+  } catch (err) {
+    console.error("댓글 조회 에러 : ", err);
     res.status(500).json({ message: "서버 에러" });
   }
 };
