@@ -13,6 +13,11 @@ dotenv.config();
 // 요청의 바디를 json 형태로 파싱할 수 있게 해줌
 app.use(express.json());
 
+dotenv.config(); // .env 사용 설정
+app.use(express.json()); //  JSON 파싱 설정
+app.use(cors()); // ← 모든 origin 허용
+
+
 // app.use(cors());
 app.use(cors({                    //요청 차단 x
   origin: "http://localhost:5173", // 허용할 프론트 주소만
